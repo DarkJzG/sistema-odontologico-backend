@@ -1,4 +1,4 @@
-package com.dev.gestion_citas;
+package com.odontologia.gestion_citas;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
