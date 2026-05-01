@@ -41,4 +41,11 @@ public class Cita {
         PENDIENTE, COMPLETADA, CANCELADA, FALTA
     }
     
+
+    // Agregar las columnas de disponibilidad y actualizado en para mostrar el estado y la ultima modificación
+    @Column(name = "disponibilidad_id")
+    private Long disponibilidadId;
+    
+    @Column(name = "actualizado_en")
+    private LocalDateTime actualizadoEn;
 }
