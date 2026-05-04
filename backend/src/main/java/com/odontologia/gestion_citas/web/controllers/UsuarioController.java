@@ -22,13 +22,5 @@ public class UsuarioController {
         return new ResponseEntity<>(nuevoUsuario, HttpStatus.CREATED);
     }
 
-    // TODO: Implementar endpoint para obtener usuario por ID
-    // TODO: Implementar endpoint para actualizar usuario
-    // TODO: Implementar endpoint para eliminar usuario
-    // TODO: Implementar endpoint para listar todos los usuarios
-    // DESARROLLAR POR ANDERSON
-    // PRGRAMAR LOS HORAIOS DE SALIDA
-    // XD
-    
 }
 
