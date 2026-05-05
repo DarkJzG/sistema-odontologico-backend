@@ -71,6 +71,27 @@ public class OdontogramaEstadoService {
         );
     }
 
+    @Transactional
+    public List<OdontogramaEstadoDTO> obtenerEstadoActualOdontograma(UUID idPaciente) {
+        if (!usuarioRepository.existsById(idPaciente)) {
+            throw new RuntimeException("Paciente no encontrado");
+        }
+
+        List<OdontogramaEstado> historialCompleto = odontogramaEstadoRepository.findByPacienteIdUsuario(idPaciente);
+        
+        java.util.Map<String, OdontogramaEstado> estadoActual = historialCompleto.stream()
+            .collect(java.util.stream.Collectors.toMap(
+                estado -> estado.getPiezaDental().getIdPieza() + "_" + estado.getPosicion().name(),
+                estado -> estado,
+                (existente, reemplazo) -> existente.getFechaRegistro().isAfter(reemplazo.getFechaRegistro()) ? existente : reemplazo
+            ));
+
+        //Convertir los valores a DTO y retornarlos
+        return estadoActual.values().stream()
+            .map(this::mapearADTO)
+            .collect(Collectors.toList());
+    }
+
 }
 
 

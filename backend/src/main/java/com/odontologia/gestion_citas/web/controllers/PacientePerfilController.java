@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+
 import java.util.UUID;
 
 @RestController
@@ -23,7 +24,8 @@ public class PacientePerfilController {
     }
 
     @GetMapping("/{id}/perfil")
-    public ResponseEntity<PacientePerfilDTO> obtenerPerfil(@PathVariable UUID id) {
+    public ResponseEntity<PacientePerfilDTO> obtenerPerfil(
+            @PathVariable UUID id) {
         return ResponseEntity.ok(perfilService.obtenerPerfil(id));
     }
 }

@@ -27,8 +27,15 @@ public class OdontogramaEstadoController {
     }
 
     @GetMapping("/paciente/{idPaciente}")
-    public ResponseEntity<List<OdontogramaEstadoDTO>> obtenerOdontograma(@PathVariable UUID idPaciente) {
+    public ResponseEntity<List<OdontogramaEstadoDTO>> obtenerOdontograma(
+            @PathVariable UUID idPaciente) {
         return ResponseEntity.ok(odontogramaEstadoService.obtenerOdontogramaPaciente(idPaciente));
+    }
+    
+    @GetMapping("/paciente/{idPaciente}/actual")
+    public ResponseEntity<List<OdontogramaEstadoDTO>> obtenerEstadoActual(
+            @PathVariable UUID idPaciente) {
+        return ResponseEntity.ok(odontogramaEstadoService.obtenerEstadoActualOdontograma(idPaciente));
     }
     
 }
