@@ -3,7 +3,7 @@ package com.odontologia.gestion_citas.persistence.entities;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
-
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -37,15 +37,15 @@ public class Cita {
     @Column(name = "creado_en", updatable = false)
     private LocalDateTime creadoEn;
 
+    @UpdateTimestamp
+    @Column(name = "actualizado_en")
+    private LocalDateTime actualizadoEn;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "disponibilidad_id", nullable = false)
+    private Disponibilidad disponibilidad;
+
     public enum EstadoCita {
         PENDIENTE, COMPLETADA, CANCELADA, FALTA
     }
-    
-
-    // Agregar las columnas de disponibilidad y actualizado en para mostrar el estado y la ultima modificación
-    @Column(name = "disponibilidad_id")
-    private Long disponibilidadId;
-    
-    @Column(name = "actualizado_en")
-    private LocalDateTime actualizadoEn;
 }
