@@ -11,6 +11,9 @@ public record CitaRequestDTO (
     
     @NotNull(message = "El ID del tratamiento es obligatorio")
     Long tratamientoId,
+
+    @NotNull(message = "El ID de la disponibilidad es obligatorio")
+    Long disponibilidadId,
     
     @NotNull(message = "La fecha y hora de inicio son obligatorias")
     @Future(message = "La cita debe ser programada en el futuro")

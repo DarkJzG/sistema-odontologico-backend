@@ -7,5 +7,11 @@ public record TratamientoDTO(
     Long id,
     String nombre,
     Integer duracionMin,
-    BigDecimal precioBase
+    BigDecimal precioBase,
+    String descripcion
 ) {}
+
+
+// Agregar validaciones dto
+// Agregar excepciones dto 
+// Crear la rama para el modulo de tratamientos 
