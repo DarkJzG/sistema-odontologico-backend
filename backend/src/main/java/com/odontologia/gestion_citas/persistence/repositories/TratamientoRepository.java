@@ -11,5 +11,5 @@ import java.util.Optional;
 public interface TratamientoRepository extends JpaRepository<Tratamiento, Long>, QuerydslPredicateExecutor<Tratamiento> {
     
     Optional<Tratamiento> findByNombre(String nombre);
-    
+    boolean existsByNombre(String nombre);
 }
