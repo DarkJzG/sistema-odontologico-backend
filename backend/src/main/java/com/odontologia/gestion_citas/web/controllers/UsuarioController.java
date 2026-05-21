@@ -4,7 +4,6 @@ import com.odontologia.gestion_citas.domain.dtos.UsuarioDTO;
 import com.odontologia.gestion_citas.domain.dtos.PacientePerfilDTO;
 import com.odontologia.gestion_citas.domain.dtos.DetallePacienteDTO;
 import com.odontologia.gestion_citas.persistence.services.UsuarioService;
-import com.odontologia.gestion_citas.persistence.entities.Usuario;
 import com.odontologia.gestion_citas.persistence.services.PacientePerfilService;
 import lombok.RequiredArgsConstructor;
 
@@ -19,8 +18,6 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping("/api/usuarios")
 @RequiredArgsConstructor
-
-
 public class UsuarioController {
     
     private final UsuarioService usuarioService;
@@ -32,43 +29,52 @@ public class UsuarioController {
         return new ResponseEntity<>(nuevoUsuario, HttpStatus.CREATED);
     }
 
-    //listar todos los usuarios
     @GetMapping
     public ResponseEntity<List<UsuarioDTO>> listarUsuarios() {
-        return ResponseEntity.ok(usuarioService.listarUsuarios());
+        return ResponseEntity.ok(usuarioService.listarTodos());
     }
 
-    //buscar por cedula
-    @GetMapping("/cedula/{cedula}")
-    public ResponseEntity<UsuarioDTO> buscarPorCedula(@PathVariable("cedula") String cedula) {
-        return ResponseEntity.ok(usuarioService.buscarPorCedula(cedula));
-    }
-    
-    //mostrar informacion basica de un usuario
     @GetMapping("/{id}")
-    public ResponseEntity<UsuarioDTO> obtenerUsuario(@PathVariable("id") UUID id) {
-        return ResponseEntity.ok(usuarioService.obtenerUsuario(id));
+    public ResponseEntity<UsuarioDTO> obtenerPorId(@PathVariable UUID id) {
+        return ResponseEntity.ok(usuarioService.obtenerPorId(id));
     }
-    
-    //Mostrar detalle completo (tabla usuario y perfilpaciente)
+
+    @GetMapping("/buscar")
+    public ResponseEntity<UsuarioDTO> obtenerPorCedula(@RequestParam String cedula) {
+        return ResponseEntity.ok(usuarioService.obtenerPorCedula(cedula));
+    }
+
+    @GetMapping("/buscar-correo")
+    public ResponseEntity<UsuarioDTO> obtenerPorEmail(@RequestParam String email) {
+        return ResponseEntity.ok(usuarioService.obtenerPorEmail(email));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<UsuarioDTO> actualizar(@PathVariable UUID id, @Valid @RequestBody UsuarioDTO dto) {
+        return ResponseEntity.ok(usuarioService.actualizarUsuario(id, dto));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminar(@PathVariable UUID id) {
+        usuarioService.eliminarUsuario(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // --- Endpoints del Módulo Clínico (Johan) ---
+
     @GetMapping("/{id}/detalle")
     public ResponseEntity<DetallePacienteDTO> obtenerDetallePaciente(@PathVariable("id") UUID id) {
-
-        //busco los datos del usuario por su id
-        UsuarioDTO usuario = usuarioService.obtenerUsuario(id);
-        //busco su perfil medico en base a su id
+        UsuarioDTO usuario = usuarioService.obtenerPorId(id);
         PacientePerfilDTO perfil = null;
         try {
             perfil = pacientePerfilService.obtenerPerfil(id);
         } catch (Exception e) {
-            //si no tiene perfil medico, se queda null
+            // si no tiene perfil medico, se queda null
         }
-        //empaqueto y envio la información
         DetallePacienteDTO detalleCompleto = new DetallePacienteDTO(usuario, perfil);
         return ResponseEntity.ok(detalleCompleto);
     }
 
-    //Actualizar y guardar cambios en las tabla Usuario y PacientePerfil
     @PutMapping("/{id}/detalle")
     public ResponseEntity<DetallePacienteDTO> actualizarDetallePaciente(
         @PathVariable("id") UUID id,
@@ -79,6 +85,4 @@ public class UsuarioController {
         DetallePacienteDTO detalleActualizado = new DetallePacienteDTO(usuarioActualizado, perfilActualizado);
         return ResponseEntity.ok(detalleActualizado);
     }
-
 }
-
