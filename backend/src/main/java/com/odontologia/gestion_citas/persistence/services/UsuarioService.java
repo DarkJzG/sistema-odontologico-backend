@@ -8,7 +8,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 
 @RequiredArgsConstructor
@@ -50,5 +52,75 @@ public class UsuarioService {
                 usuarioGuardado.getRol().name()
         );
 
+    }
+
+    //listar todos los usuarios
+    public List<UsuarioDTO> listarUsuarios() {
+        return usuarioRepository.findAll().stream()
+                .map(usuario -> new UsuarioDTO(
+                        usuario.getIdUsuario(),
+                        usuario.getCedula(),
+                        usuario.getNombres(),
+                        usuario.getApellidos(),
+                        usuario.getEmail(),
+                        usuario.getTelefono(),
+                        usuario.getRol() != null ? usuario.getRol().name() : "NO_ASIGNADO"
+                ))
+                .collect(Collectors.toList());
+    }
+
+    //mostrar informacion de un usuario
+    public UsuarioDTO obtenerUsuario(UUID id) {
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        
+        return new UsuarioDTO(
+                usuario.getIdUsuario(),
+                usuario.getCedula(),
+                usuario.getNombres(),
+                usuario.getApellidos(),
+                usuario.getEmail(),
+                usuario.getTelefono(),
+                usuario.getRol() != null ? usuario.getRol().name() : "NO_ASIGNADO"
+        );
+    }
+
+    //Actualziar los cambios de DETALLEPACIENTE
+    public UsuarioDTO actualizarUsuario(UUID id, UsuarioDTO dto) {
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        
+        usuario.setCedula(dto.cedula());
+        usuario.setNombres(dto.nombres());
+        usuario.setApellidos(dto.apellidos());
+        usuario.setTelefono(dto.telefono());
+        
+        Usuario usuarioGuardado = usuarioRepository.save(usuario);
+        
+        return new UsuarioDTO(
+                usuarioGuardado.getIdUsuario(),
+                usuarioGuardado.getCedula(),
+                usuarioGuardado.getNombres(),
+                usuarioGuardado.getApellidos(),
+                usuarioGuardado.getEmail(),
+                usuarioGuardado.getTelefono(),
+                usuarioGuardado.getRol() != null ? usuarioGuardado.getRol().name() : "NO_ASIGNADO"
+        );
+    }
+    
+    //buscar por cedula
+    public UsuarioDTO buscarPorCedula(String cedula) {
+        Usuario usuario = usuarioRepository.findByCedula(cedula)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        
+        return new UsuarioDTO(
+                usuario.getIdUsuario(),
+                usuario.getCedula(),
+                usuario.getNombres(),
+                usuario.getApellidos(),
+                usuario.getEmail(),
+                usuario.getTelefono(),
+                usuario.getRol() != null ? usuario.getRol().name() : "NO_ASIGNADO"
+        );
     }
 }

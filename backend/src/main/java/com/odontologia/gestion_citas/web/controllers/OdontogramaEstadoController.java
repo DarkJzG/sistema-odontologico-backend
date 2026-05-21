@@ -12,29 +12,29 @@ import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/odontograma")
+@RequestMapping("/api/odontogramas")
 
 public class OdontogramaEstadoController {
 
     private final OdontogramaEstadoService odontogramaEstadoService;
 
-    @PostMapping("/paciente/{idPaciente}")
+    @PostMapping("/pacientes/{idPaciente}")
     public ResponseEntity<OdontogramaEstadoDTO> registrarEstado(
-        @PathVariable UUID idPaciente,
+        @PathVariable("idPaciente") UUID idPaciente,
         @RequestBody OdontogramaEstadoDTO dto
     ) {
         return new ResponseEntity<>(odontogramaEstadoService.registrarEstado(idPaciente, dto), HttpStatus.CREATED);
     }
 
-    @GetMapping("/paciente/{idPaciente}")
+    @GetMapping("/pacientes/{idPaciente}")
     public ResponseEntity<List<OdontogramaEstadoDTO>> obtenerOdontograma(
-            @PathVariable UUID idPaciente) {
+            @PathVariable("idPaciente") UUID idPaciente) {
         return ResponseEntity.ok(odontogramaEstadoService.obtenerOdontogramaPaciente(idPaciente));
     }
     
-    @GetMapping("/paciente/{idPaciente}/actual")
+    @GetMapping("/pacientes/{idPaciente}/actual")
     public ResponseEntity<List<OdontogramaEstadoDTO>> obtenerEstadoActual(
-            @PathVariable UUID idPaciente) {
+            @PathVariable("idPaciente") UUID idPaciente) {
         return ResponseEntity.ok(odontogramaEstadoService.obtenerEstadoActualOdontograma(idPaciente));
     }
     

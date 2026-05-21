@@ -18,14 +18,14 @@ public class PacientePerfilController {
 
     @PostMapping("/{id}/perfil")
     public ResponseEntity<PacientePerfilDTO> guardarPerfil(
-            @PathVariable UUID id,
+            @PathVariable("id") UUID id,
             @RequestBody PacientePerfilDTO dto) {
         return ResponseEntity.ok(perfilService.crearActualizarPerfil(id, dto));
     }
 
     @GetMapping("/{id}/perfil")
     public ResponseEntity<PacientePerfilDTO> obtenerPerfil(
-            @PathVariable UUID id) {
+            @PathVariable("id") UUID id) {
         return ResponseEntity.ok(perfilService.obtenerPerfil(id));
     }
 }
