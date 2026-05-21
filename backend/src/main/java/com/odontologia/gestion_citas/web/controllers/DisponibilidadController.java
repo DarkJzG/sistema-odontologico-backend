@@ -14,16 +14,18 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/disponibilidad")
 @RequiredArgsConstructor
-
+@CrossOrigin(origins = "*")
 public class DisponibilidadController {
+
     private final DisponibilidadService disponibilidadService;
 
-    // Listar jornadas para que el paciente elija en tiempo real
+    // Listar bloqueos de agenda activos en el sistema (Ausencias médicas, festivos)
     @GetMapping
     public ResponseEntity<List<DisponibilidadDTO>> listar() {
         return ResponseEntity.ok(disponibilidadService.listarDisponibilidades());
     }
 
+    // Crear un bloqueo de agenda (Ej: Doctor asistirá a congreso de 8am a 12pm)
     @PostMapping
     public ResponseEntity<DisponibilidadDTO> crear(@Valid @RequestBody DisponibilidadDTO dto) {
         return new ResponseEntity<>(disponibilidadService.crearDisponibilidad(dto), HttpStatus.CREATED);

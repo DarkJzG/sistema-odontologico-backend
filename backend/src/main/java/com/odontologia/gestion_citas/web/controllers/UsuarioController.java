@@ -36,6 +36,11 @@ public class UsuarioController {
         return ResponseEntity.ok(usuarioService.obtenerPorCedula(cedula));
     }
 
+    @GetMapping("/buscar-correo")
+    public ResponseEntity<UsuarioDTO> obtenerPorEmail(@RequestParam String email) {
+        return ResponseEntity.ok(usuarioService.obtenerPorEmail(email));
+    }
+
     // Endpoint para actualizar
     @PutMapping("/{id}")
     public ResponseEntity<UsuarioDTO> actualizar(@PathVariable UUID id, @jakarta.validation.Valid @RequestBody UsuarioDTO dto) {

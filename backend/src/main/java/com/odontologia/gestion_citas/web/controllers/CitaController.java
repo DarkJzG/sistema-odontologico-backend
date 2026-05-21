@@ -37,4 +37,20 @@ public class CitaController {
         // Asegúrate de implementar 'obtenerPorId' en tu CitaService para que esto funcione
         return ResponseEntity.ok(citaService.obtenerPorId(id)); 
     }
+
+    /**
+     * Endpoint para consultar el historial de citas de un paciente.
+     */
+    @GetMapping("/paciente/{pacienteId}")
+    public ResponseEntity<java.util.List<CitaResponseDTO>> obtenerCitasPorPaciente(@PathVariable UUID pacienteId) {
+        return ResponseEntity.ok(citaService.obtenerCitasPorPaciente(pacienteId));
+    }
+
+    /**
+     * Endpoint para que el paciente pueda cancelar su cita.
+     */
+    @PutMapping("/{id}/cancelar")
+    public ResponseEntity<CitaResponseDTO> cancelarCita(@PathVariable UUID id) {
+        return ResponseEntity.ok(citaService.cancelarCita(id));
+    }
 }
