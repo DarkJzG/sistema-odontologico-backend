@@ -41,10 +41,6 @@ public class Cita {
     @Column(name = "actualizado_en")
     private LocalDateTime actualizadoEn;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "disponibilidad_id", nullable = false)
-    private Disponibilidad disponibilidad;
-
     public enum EstadoCita {
         PENDIENTE, COMPLETADA, CANCELADA, FALTA
     }
