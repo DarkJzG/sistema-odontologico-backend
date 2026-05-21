@@ -8,7 +8,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
+import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -26,12 +27,10 @@ public class UsuarioService {
      */
     @Transactional
     public UsuarioDTO crearUsuario(UsuarioDTO dto) {
-        // Validar duplicados por correo electrónico
         if (usuarioRepository.findByEmail(dto.email()).isPresent()) {
             throw new RuntimeException("El correo ya está registrado");
         }
 
-        // Mapeo: convertir DTO a entidad usando el patrón Builder de Lombok
         Usuario usuario = Usuario.builder()
                 .idUsuario(UUID.randomUUID())
                 .cedula(dto.cedula())
@@ -39,18 +38,14 @@ public class UsuarioService {
                 .apellidos(dto.apellidos())
                 .email(dto.email())
                 .telefono(dto.telefono())
-                .rol(Usuario.Rol.valueOf(dto.rol()))
+                // Validación por si envían el rol vacío desde algún módulo
+                .rol(dto.rol() != null && !dto.rol().equals("NO_ASIGNADO") ? Usuario.Rol.valueOf(dto.rol()) : null)
                 .build();
 
-        // Persistencia: Guardar en la BD asegurando que el objeto no sea nulo
         @NonNull Usuario usuarioGuardado = usuarioRepository.save(usuario);
-
         return mapearADTO(usuarioGuardado);
     }
 
-    /**
-     * Busca un usuario por su ID (UUID).
-     */
     @Transactional(readOnly = true)
     public UsuarioDTO obtenerPorId(UUID id) {
         return usuarioRepository.findById(id)
@@ -58,29 +53,20 @@ public class UsuarioService {
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + id));
     }
 
-    /**
-     * Busca un usuario por su número de cédula.
-     */
     @Transactional(readOnly = true)
     public UsuarioDTO obtenerPorCedula(String cedula) {
         return usuarioRepository.findByCedula(cedula)
                 .map(this::mapearADTO)
-                .orElseThrow(() -> new RuntimeException("Paciente no encontrado con cédula: " + cedula));
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con cédula: " + cedula));
     }
 
-    /**
-     * Busca un usuario por su email.
-     */
     @Transactional(readOnly = true)
     public UsuarioDTO obtenerPorEmail(String email) {
         return usuarioRepository.findByEmail(email)
                 .map(this::mapearADTO)
-                .orElseThrow(() -> new RuntimeException("Paciente no encontrado con email: " + email));
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con email: " + email));
     }
 
-    /**
-     * Lista todos los usuarios registrados.
-     */
     @Transactional(readOnly = true)
     public List<UsuarioDTO> listarTodos() {
         return usuarioRepository.findAll().stream()
@@ -88,37 +74,33 @@ public class UsuarioService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Actualiza la información de un usuario existente.
-     */
     @Transactional
     public UsuarioDTO actualizarUsuario(UUID id, UsuarioDTO dto) {
-        // 1. Buscar el usuario existente
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado para actualizar"));
 
-        // 2. Validar si el correo cambió y si el nuevo ya está en uso
-        if (!usuario.getEmail().equals(dto.email()) && 
-            usuarioRepository.findByEmail(dto.email()).isPresent()) {
-            throw new RuntimeException("El nuevo correo ya está registrado por otro usuario");
+        // Validación de correo implementada por ti
+        if (dto.email() != null && !usuario.getEmail().equals(dto.email())) {
+            if (usuarioRepository.findByEmail(dto.email()).isPresent()) {
+                throw new RuntimeException("El nuevo correo ya está registrado por otro usuario");
+            }
+            usuario.setEmail(dto.email());
         }
 
-        // 3. Actualizar campos mediante setters
+        // Actualización del resto de campos requeridos por tu compañero
         usuario.setCedula(dto.cedula());
         usuario.setNombres(dto.nombres());
         usuario.setApellidos(dto.apellidos());
-        usuario.setEmail(dto.email());
         usuario.setTelefono(dto.telefono());
-        usuario.setRol(Usuario.Rol.valueOf(dto.rol()));
 
-        // 4. Guardar cambios
+        if (dto.rol() != null && !dto.rol().equals("NO_ASIGNADO")) {
+            usuario.setRol(Usuario.Rol.valueOf(dto.rol()));
+        }
+
         @NonNull Usuario usuarioActualizado = usuarioRepository.save(usuario);
         return mapearADTO(usuarioActualizado);
     }
 
-    /**
-     * Elimina físicamente a un usuario de la base de datos.
-     */
     @Transactional
     public void eliminarUsuario(UUID id) {
         if (!usuarioRepository.existsById(id)) {
@@ -128,7 +110,7 @@ public class UsuarioService {
     }
 
     /**
-     * Método privado (Helper) para evitar repetir código de mapeo.
+     * Método privado (Helper) tuyo, sumado a la seguridad de nulos de tu compañero.
      */
     private UsuarioDTO mapearADTO(Usuario usuario) {
         return new UsuarioDTO(
@@ -138,7 +120,7 @@ public class UsuarioService {
                 usuario.getApellidos(),
                 usuario.getEmail(),
                 usuario.getTelefono(),
-                usuario.getRol().name()
+                usuario.getRol() != null ? usuario.getRol().name() : "NO_ASIGNADO"
         );
     }
 }

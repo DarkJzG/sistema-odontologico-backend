@@ -15,4 +15,8 @@ public interface UsuarioRepository extends JpaRepository<Usuario, UUID>, Queryds
 
     Optional<Usuario> findByCedula(String cedula);
     
+    Optional<Usuario> findByNombres(String nombres);
+
+    Optional<Usuario> findByApellidos(String apellidos);
+    
 }

@@ -3,11 +3,14 @@ package com.odontologia.gestion_citas.web.exceptions;
 import com.odontologia.gestion_citas.domain.dtos.ErrorResponseDTO;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
 @RestControllerAdvice 
 public class GlobalExceptionHandler {
@@ -29,26 +32,46 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
-    // Este método atrapa los errores de las anotaciones (@NotBlank, @Email, etc.)
-    @ExceptionHandler(org.springframework.web.bind.MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponseDTO> manejarValidaciones(org.springframework.web.bind.MethodArgumentNotValidException ex, org.springframework.web.context.request.WebRequest request) {
+    /**
+     * Atrapa los errores de las anotaciones (@NotBlank, @Email, etc.)
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponseDTO> manejarValidaciones(MethodArgumentNotValidException ex, WebRequest request) {
         
-        // Creamos un mapa para guardar: "campo": "error"
-        java.util.Map<String, String> errores = new java.util.HashMap<>();
+        Map<String, String> errores = new HashMap<>();
         
         ex.getBindingResult().getFieldErrors().forEach(error -> {
             errores.put(error.getField(), error.getDefaultMessage());
         });
 
         ErrorResponseDTO response = ErrorResponseDTO.builder()
-                .timestamp(java.time.LocalDateTime.now())
-                .status(org.springframework.http.HttpStatus.BAD_REQUEST.value())
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
                 .error("Error de Validación")
                 .mensaje("Varios campos no cumplen con los requisitos")
                 .path(request.getDescription(false))
-                .validaciones(errores) // Aquí metemos el mapa de errores
+                .validaciones(errores) 
                 .build();
 
-        return new ResponseEntity<>(response, org.springframework.http.HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * APORTE DEL COMPAÑERO: Atrapa cualquier error inesperado (Error 500)
+     */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponseDTO> handleGlobalException(Exception ex, WebRequest request) {
+        // Imprime el error en la consola para los desarrolladores
+        ex.printStackTrace(); 
+        
+        ErrorResponseDTO errorResponse = ErrorResponseDTO.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                .error("Error interno del servidor")
+                .mensaje("Ocurrió un error inesperado. Por favor, contacte a soporte técnico.")
+                .path(request.getDescription(false))
+                .build();
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }
