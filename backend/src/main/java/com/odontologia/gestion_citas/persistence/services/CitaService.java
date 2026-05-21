@@ -9,12 +9,17 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings("null")
 public class CitaService {
+
     private final CitaRepository citaRepository;
     private final UsuarioRepository usuarioRepository;
     private final TratamientoRepository tratamientoRepository;
@@ -22,43 +27,58 @@ public class CitaService {
 
     @Transactional
     public CitaResponseDTO agendarCita(CitaRequestDTO request) {
-        // 1. Validar que el paciente existe (Usamos el ID que viene dentro del DTO)
+        // 1. Validar existencia del paciente y del tratamiento
         Usuario paciente = usuarioRepository.findById(request.pacienteId())
                 .orElseThrow(() -> new RuntimeException("El paciente seleccionado no existe en el sistema."));
 
-        // 2. Obtener tratamiento
         Tratamiento tratamiento = tratamientoRepository.findById(request.tratamientoId())
                 .orElseThrow(() -> new RuntimeException("El tratamiento seleccionado no es válido."));
 
-        // 3. Obtener la disponibilidad
-        Disponibilidad disponibilidad = disponibilidadRepository.findById(request.disponibilidadId())
-                .orElseThrow(() -> new RuntimeException("La jornada de disponibilidad seleccionada no existe."));
+        // 2. Definir intervalos de tiempo
+        LocalDateTime fechaInicio = request.fechaHoraInicio();
+        LocalDateTime fechaFin = fechaInicio.plusMinutes(tratamiento.getDuracionMin());
 
-        // 4. Calcular fecha fin
-        LocalDateTime fechaFin = request.fechaHoraInicio().plusMinutes(tratamiento.getDuracionMin());
-
-        // 5. Validar rango de disponibilidad
-        if (request.fechaHoraInicio().isBefore(disponibilidad.getFechaInicio()) || 
-            fechaFin.isAfter(disponibilidad.getFechaFin())) {
-            throw new RuntimeException("El horario solicitado está fuera de la jornada laboral permitida.");
+        // 3. REGLA DE NEGOCIO: Validar días laborables (Lunes a Viernes)
+        DayOfWeek diaSemana = fechaInicio.getDayOfWeek();
+        if (diaSemana == DayOfWeek.SATURDAY || diaSemana == DayOfWeek.SUNDAY) {
+            throw new RuntimeException("No es posible agendar: La clínica no opera los fines de semana.");
         }
 
-        // 6. Validar traslapes con QueryDSL
+        // 4. REGLA DE NEGOCIO: Validar rangos horarios permitidos (08:00 - 13:00 y 14:00 - 18:00)
+        LocalTime horaInicio = fechaInicio.toLocalTime();
+        LocalTime horaFin = fechaFin.toLocalTime();
+
+        boolean enTurnoManana = !horaInicio.isBefore(LocalTime.of(8, 0)) && !horaFin.isAfter(LocalTime.of(13, 0));
+        boolean enTurnoTarde = !horaInicio.isBefore(LocalTime.of(14, 0)) && !horaFin.isAfter(LocalTime.of(18, 0));
+
+        if (!enTurnoManana && !enTurnoTarde) {
+            throw new RuntimeException("Horario no permitido. La jornada laboral es de 08:00 a 13:00 y de 14:00 a 18:00.");
+        }
+
+        // 5. EXCLUSIÓN: Validar bloqueos o ausencias del doctor en la tabla de disponibilidad
+        QDisponibilidad qDisponibilidad = QDisponibilidad.disponibilidad;
+        BooleanExpression doctorAusente = qDisponibilidad.fechaInicio.before(fechaFin)
+                .and(qDisponibilidad.fechaFin.after(fechaInicio));
+
+        if (disponibilidadRepository.exists(doctorAusente)) {
+            throw new RuntimeException("El horario seleccionado no está disponible debido a un bloqueo de agenda médica.");
+        }
+
+        // 6. TRASLAPES: Validar que el espacio no esté reservado por otra cita activa
         QCita qCita = QCita.cita;
-        BooleanExpression traslapeExistente = qCita.fechaHoraInicio.before(fechaFin)
-                .and(qCita.fechaHoraFin.after(request.fechaHoraInicio()))
+        BooleanExpression traslapeCita = qCita.fechaHoraInicio.before(fechaFin)
+                .and(qCita.fechaHoraFin.after(fechaInicio))
                 .and(qCita.estado.ne(Cita.EstadoCita.CANCELADA));
 
-        if (citaRepository.exists(traslapeExistente)) {
+        if (citaRepository.exists(traslapeCita)) {
             throw new RuntimeException("No es posible agendar: El horario ya está ocupado por otra cita clínica.");
         }
 
-        // 7. Persistencia
+        // 7. Mapear entidad y persistir en la base de datos
         Cita nuevaCita = new Cita();
         nuevaCita.setPaciente(paciente);
         nuevaCita.setTratamiento(tratamiento);
-        nuevaCita.setDisponibilidad(disponibilidad);
-        nuevaCita.setFechaHoraInicio(request.fechaHoraInicio());
+        nuevaCita.setFechaHoraInicio(fechaInicio);
         nuevaCita.setFechaHoraFin(fechaFin);
         nuevaCita.setEstado(Cita.EstadoCita.PENDIENTE);
 
@@ -66,17 +86,6 @@ public class CitaService {
 
         return mapearADTO(citaGuardada);
     }
-
-    private CitaResponseDTO mapearADTO(Cita cita) {
-        return new CitaResponseDTO(
-                cita.getId(), // Asegúrate que en tu Entidad Cita el campo sea 'id'
-                cita.getPaciente().getNombres() + " " + cita.getPaciente().getApellidos(),
-                cita.getTratamiento().getNombre(),
-                cita.getFechaHoraInicio(),
-                cita.getFechaHoraFin(),
-                cita.getEstado().name()
-        );
-    } 
 
     /**
      * Busca una cita específica por su ID y la devuelve mapeada a DTO.
@@ -86,5 +95,43 @@ public class CitaService {
         return citaRepository.findById(id)
                 .map(this::mapearADTO)
                 .orElseThrow(() -> new RuntimeException("Cita no encontrada con el ID: " + id));
+    }
+
+    /**
+     * Busca todas las citas pertenecientes a un paciente específico utilizando su ID de usuario.
+     */
+    @Transactional(readOnly = true)
+    public List<CitaResponseDTO> obtenerCitasPorPaciente(UUID pacienteId) {
+        return citaRepository.findByPaciente_IdUsuario(pacienteId).stream()
+                .map(this::mapearADTO)
+                .toList();
+    }
+
+    /**
+     * Modifica el estado de una cita clínica a CANCELADA.
+     */
+    @Transactional
+    public CitaResponseDTO cancelarCita(UUID id) {
+        Cita cita = citaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Cita no encontrada con el ID: " + id));
+        
+        cita.setEstado(Cita.EstadoCita.CANCELADA);
+        citaRepository.save(cita);
+        
+        return mapearADTO(cita);
+    }
+
+    /**
+     * Transforma una entidad Cita a su correspondiente DTO de respuesta.
+     */
+    private CitaResponseDTO mapearADTO(Cita cita) {
+        return new CitaResponseDTO(
+                cita.getId(),
+                cita.getPaciente().getNombres() + " " + cita.getPaciente().getApellidos(),
+                cita.getTratamiento().getNombre(),
+                cita.getFechaHoraInicio(),
+                cita.getFechaHoraFin(),
+                cita.getEstado().name()
+        );
     }
 }

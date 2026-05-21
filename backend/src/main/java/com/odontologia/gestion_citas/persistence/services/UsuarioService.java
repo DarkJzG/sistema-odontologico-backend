@@ -9,13 +9,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
  * Servicio encargado de la lógica de negocio para la gestión de usuarios.
  */
 @RequiredArgsConstructor
+@SuppressWarnings("null")
 @Service
 public class UsuarioService {
 
@@ -66,6 +66,16 @@ public class UsuarioService {
         return usuarioRepository.findByCedula(cedula)
                 .map(this::mapearADTO)
                 .orElseThrow(() -> new RuntimeException("Paciente no encontrado con cédula: " + cedula));
+    }
+
+    /**
+     * Busca un usuario por su email.
+     */
+    @Transactional(readOnly = true)
+    public UsuarioDTO obtenerPorEmail(String email) {
+        return usuarioRepository.findByEmail(email)
+                .map(this::mapearADTO)
+                .orElseThrow(() -> new RuntimeException("Paciente no encontrado con email: " + email));
     }
 
     /**
