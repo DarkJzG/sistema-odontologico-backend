@@ -1,3 +1,4 @@
+//src/main/java/com/odontologia/gestion_citas/web/exceptions/GlobalExceptionHandler.java
 package com.odontologia.gestion_citas.web.exceptions;
 
 import com.odontologia.gestion_citas.domain.dtos.ErrorResponseDTO;

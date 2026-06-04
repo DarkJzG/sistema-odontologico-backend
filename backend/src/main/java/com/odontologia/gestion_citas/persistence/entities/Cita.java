@@ -1,12 +1,25 @@
-package com.odontologia.gestion_citas.persistence.entities;
 
-import jakarta.persistence.*;
-import lombok.Data;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+//src/main/java/com/odontologia/gestion_citas/persistence/entities/Cita.java
+package com.odontologia.gestion_citas.persistence.entities;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import lombok.Data;
 
 @Data
 @Entity
@@ -24,6 +37,10 @@ public class Cita {
     @JoinColumn(name = "tratamiento_id", nullable = false)
     private Tratamiento tratamiento;
 
+    @ManyToOne
+    @JoinColumn(name="doctor_id")
+    private Usuario doctor;
+    
     @Column(name = "fecha_hora_inicio", nullable = false)
     private LocalDateTime fechaHoraInicio;
     

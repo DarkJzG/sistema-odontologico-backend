@@ -1,8 +1,11 @@
+// src/main/java/com/odontologia/gestion_citas/persistence/services/DisponibilidadService.java
 package com.odontologia.gestion_citas.persistence.services;
 
 import com.odontologia.gestion_citas.domain.dtos.DisponibilidadDTO;
 import com.odontologia.gestion_citas.persistence.entities.Disponibilidad;
+import com.odontologia.gestion_citas.persistence.entities.Usuario;
 import com.odontologia.gestion_citas.persistence.repositories.DisponibilidadRepository;
+import com.odontologia.gestion_citas.persistence.repositories.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,7 +17,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @SuppressWarnings("null")
 public class DisponibilidadService {
+    
     private final DisponibilidadRepository disponibilidadRepository;
+    private final UsuarioRepository usuarioRepository; 
 
     @Transactional(readOnly = true)
     public List<DisponibilidadDTO> listarDisponibilidades() {
@@ -25,10 +30,14 @@ public class DisponibilidadService {
 
     @Transactional
     public DisponibilidadDTO crearDisponibilidad(DisponibilidadDTO dto) {
-        // VALIDACIÓN LÓGICA
         validarFechas(dto);
 
+        // CORRECCIÓN: Buscamos al doctor por su Keycloak ID
+        Usuario doctor = usuarioRepository.findByKeycloakId(dto.idDoctor())
+                .orElseThrow(() -> new RuntimeException("No se puede crear disponibilidad: Doctor no encontrado."));
+
         Disponibilidad disponibilidad = new Disponibilidad();
+        disponibilidad.setDoctor(doctor); 
         disponibilidad.setFechaInicio(dto.fechaInicio());
         disponibilidad.setFechaFin(dto.fechaFin());
         disponibilidad.setMotivo(dto.motivo());
@@ -40,12 +49,16 @@ public class DisponibilidadService {
 
     @Transactional
     public DisponibilidadDTO actualizarDisponibilidad(Long id, DisponibilidadDTO dto) {
-        // VALIDACIÓN LÓGICA
         validarFechas(dto);
 
         Disponibilidad disponibilidad = disponibilidadRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("No se puede actualizar: Disponibilidad no encontrada con ID: " + id));
+                .orElseThrow(() -> new RuntimeException("No se puede actualizar: Disponibilidad no encontrada."));
         
+        // CORRECCIÓN: Buscamos al doctor por su Keycloak ID
+        Usuario doctor = usuarioRepository.findByKeycloakId(dto.idDoctor())
+                .orElseThrow(() -> new RuntimeException("Doctor no encontrado."));
+
+        disponibilidad.setDoctor(doctor); 
         disponibilidad.setFechaInicio(dto.fechaInicio());
         disponibilidad.setFechaFin(dto.fechaFin());
         disponibilidad.setMotivo(dto.motivo());
@@ -57,14 +70,12 @@ public class DisponibilidadService {
 
     @Transactional
     public void eliminarDisponibilidad(Long id) {
-        // Mejora: Verificar si existe antes de intentar eliminar
         if (!disponibilidadRepository.existsById(id)) {
-            throw new RuntimeException("No se puede eliminar: La disponibilidad con ID " + id + " no existe.");
+            throw new RuntimeException("No se puede eliminar: La disponibilidad no existe.");
         }
         disponibilidadRepository.deleteById(id);
     }
 
-    // MÉTODO DE APOYO PARA VALIDAR LA COHERENCIA DEL TIEMPO
     private void validarFechas(DisponibilidadDTO dto) {
         if (dto.fechaFin().isBefore(dto.fechaInicio()) || dto.fechaFin().isEqual(dto.fechaInicio())) {
             throw new RuntimeException("La fecha/hora de fin debe ser estrictamente posterior a la de inicio.");
@@ -74,6 +85,7 @@ public class DisponibilidadService {
     private DisponibilidadDTO mapearADTO(Disponibilidad entidad) {
         return new DisponibilidadDTO(
                 entidad.getId(),
+                entidad.getDoctor().getKeycloakId(), 
                 entidad.getFechaInicio(),
                 entidad.getFechaFin(),
                 entidad.getMotivo(),

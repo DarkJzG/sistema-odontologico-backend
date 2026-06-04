@@ -1,3 +1,4 @@
+//src/main/java/com/odontologia/gestion_citas/persistence/entities/OdontogramaEstado.java
 package com.odontologia.gestion_citas.persistence.entities;
 
 import jakarta.persistence.*;
@@ -56,7 +57,7 @@ public class OdontogramaEstado {
     }
     
     public enum Estado {
-        SANO, CARIES, OBTURADO, AUSENTE, CORONO, ENDODONCIA, PERDIDA_PARCIAL, IMPLANTE, OTRO
+        SANO, CARIES, OBTURADO, AUSENTE, CORONA, ENDODONCIA, PERDIDA_PARCIAL, IMPLANTE, OTRO
     }
 
 }

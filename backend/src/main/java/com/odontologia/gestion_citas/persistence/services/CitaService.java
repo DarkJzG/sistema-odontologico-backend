@@ -1,3 +1,4 @@
+//src/main/java/com/odontologia/gestion_citas/persistence/services/CitaService.java
 package com.odontologia.gestion_citas.persistence.services;
 
 import com.odontologia.gestion_citas.domain.dtos.CitaRequestDTO;
@@ -12,8 +13,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -24,59 +28,68 @@ public class CitaService {
     private final UsuarioRepository usuarioRepository;
     private final TratamientoRepository tratamientoRepository;
     private final DisponibilidadRepository disponibilidadRepository;
+    private final HorarioDoctorRepository horarioDoctorRepository;
 
     @Transactional
     public CitaResponseDTO agendarCita(CitaRequestDTO request) {
-        // 1. Validar existencia del paciente y del tratamiento
-        Usuario paciente = usuarioRepository.findById(request.pacienteId())
-                .orElseThrow(() -> new RuntimeException("El paciente seleccionado no existe en el sistema."));
+        
+        // MAGIA: Soporta tanto ID de Postgres (paciente walk-in) como ID de Keycloak (paciente desde su app)
+        Usuario paciente = usuarioRepository.findById(request.idPaciente())
+                .orElseGet(() -> usuarioRepository.findByKeycloakId(request.idPaciente())
+                .orElseThrow(() -> new RuntimeException("El paciente no existe en el sistema.")));
 
-        Tratamiento tratamiento = tratamientoRepository.findById(request.tratamientoId())
-                .orElseThrow(() -> new RuntimeException("El tratamiento seleccionado no es válido."));
+        // MAGIA: Soporta tanto ID de Postgres (elegido de lista) como ID de Keycloak (doctor logueado)
+        Usuario doctor = usuarioRepository.findById(request.idDoctor())
+                .orElseGet(() -> usuarioRepository.findByKeycloakId(request.idDoctor())
+                .orElseThrow(() -> new RuntimeException("El doctor no existe en el sistema.")));
 
-        // 2. Definir intervalos de tiempo
+        Tratamiento tratamiento = tratamientoRepository.findById(request.idTratamiento())
+                .orElseThrow(() -> new RuntimeException("El tratamiento no es válido."));
+
         LocalDateTime fechaInicio = request.fechaHoraInicio();
         LocalDateTime fechaFin = fechaInicio.plusMinutes(tratamiento.getDuracionMin());
-
-        // 3. REGLA DE NEGOCIO: Validar días laborables (Lunes a Viernes)
         DayOfWeek diaSemana = fechaInicio.getDayOfWeek();
-        if (diaSemana == DayOfWeek.SATURDAY || diaSemana == DayOfWeek.SUNDAY) {
-            throw new RuntimeException("No es posible agendar: La clínica no opera los fines de semana.");
-        }
-
-        // 4. REGLA DE NEGOCIO: Validar rangos horarios permitidos (08:00 - 13:00 y 14:00 - 18:00)
         LocalTime horaInicio = fechaInicio.toLocalTime();
         LocalTime horaFin = fechaFin.toLocalTime();
 
-        boolean enTurnoManana = !horaInicio.isBefore(LocalTime.of(8, 0)) && !horaFin.isAfter(LocalTime.of(13, 0));
-        boolean enTurnoTarde = !horaInicio.isBefore(LocalTime.of(14, 0)) && !horaFin.isAfter(LocalTime.of(18, 0));
+        // ¡IMPORTANTE! Usamos doctor.getId() para garantizar la llave foránea
+        List<HorarioDoctor> horariosDelDia = horarioDoctorRepository
+                .findByDoctor_IdAndDiaSemana(doctor.getId(), diaSemana);
 
-        if (!enTurnoManana && !enTurnoTarde) {
-            throw new RuntimeException("Horario no permitido. La jornada laboral es de 08:00 a 13:00 y de 14:00 a 18:00.");
+        if (horariosDelDia.isEmpty()) {
+            throw new RuntimeException("El doctor no labora en el día seleccionado.");
         }
 
-        // 5. EXCLUSIÓN: Validar bloqueos o ausencias del doctor en la tabla de disponibilidad
+        boolean dentroDelHorario = horariosDelDia.stream().anyMatch(horario -> 
+            !horaInicio.isBefore(horario.getHoraInicio()) && !horaFin.isAfter(horario.getHoraFin())
+        );
+
+        if (!dentroDelHorario) {
+            throw new RuntimeException("La hora seleccionada está fuera del horario de atención del doctor para este día.");
+        }
+
         QDisponibilidad qDisponibilidad = QDisponibilidad.disponibilidad;
-        BooleanExpression doctorAusente = qDisponibilidad.fechaInicio.before(fechaFin)
+        BooleanExpression doctorAusente = qDisponibilidad.doctor.id.eq(doctor.getId())
+                .and(qDisponibilidad.fechaInicio.before(fechaFin))
                 .and(qDisponibilidad.fechaFin.after(fechaInicio));
 
         if (disponibilidadRepository.exists(doctorAusente)) {
-            throw new RuntimeException("El horario seleccionado no está disponible debido a un bloqueo de agenda médica.");
+            throw new RuntimeException("El horario seleccionado no está disponible por una ausencia programada del doctor.");
         }
 
-        // 6. TRASLAPES: Validar que el espacio no esté reservado por otra cita activa
         QCita qCita = QCita.cita;
-        BooleanExpression traslapeCita = qCita.fechaHoraInicio.before(fechaFin)
+        BooleanExpression traslapeCita = qCita.doctor.id.eq(doctor.getId())
+                .and(qCita.fechaHoraInicio.before(fechaFin))
                 .and(qCita.fechaHoraFin.after(fechaInicio))
                 .and(qCita.estado.ne(Cita.EstadoCita.CANCELADA));
 
         if (citaRepository.exists(traslapeCita)) {
-            throw new RuntimeException("No es posible agendar: El horario ya está ocupado por otra cita clínica.");
+            throw new RuntimeException("El doctor ya tiene una cita clínica programada en ese horario.");
         }
 
-        // 7. Mapear entidad y persistir en la base de datos
         Cita nuevaCita = new Cita();
         nuevaCita.setPaciente(paciente);
+        nuevaCita.setDoctor(doctor);
         nuevaCita.setTratamiento(tratamiento);
         nuevaCita.setFechaHoraInicio(fechaInicio);
         nuevaCita.setFechaHoraFin(fechaFin);
@@ -102,9 +115,14 @@ public class CitaService {
      */
     @Transactional(readOnly = true)
     public List<CitaResponseDTO> obtenerCitasPorPaciente(UUID pacienteId) {
-        return citaRepository.findByPaciente_IdUsuario(pacienteId).stream()
+        Usuario paciente = usuarioRepository.findById(pacienteId)
+                .orElseGet(() -> usuarioRepository.findByKeycloakId(pacienteId)
+                .orElseThrow(() -> new RuntimeException("Paciente no encontrado con el ID: " + pacienteId)));
+
+        // Buscamos las citas usando la clave primaria real de la entidad encontrada
+        return citaRepository.findByPaciente_Id(paciente.getId()).stream()
                 .map(this::mapearADTO)
-                .toList();
+                .collect(Collectors.toList());
     }
 
     /**
@@ -127,11 +145,126 @@ public class CitaService {
     private CitaResponseDTO mapearADTO(Cita cita) {
         return new CitaResponseDTO(
                 cita.getId(),
+                cita.getPaciente().getId(),
                 cita.getPaciente().getNombres() + " " + cita.getPaciente().getApellidos(),
-                cita.getTratamiento().getNombre(),
+                cita.getTratamiento().getId(), 
+                cita.getTratamiento().getNombre() + " con Dr. " + cita.getDoctor().getApellidos(),
                 cita.getFechaHoraInicio(),
                 cita.getFechaHoraFin(),
                 cita.getEstado().name()
         );
+    }
+
+    @Transactional(readOnly = true)
+    public List<String> obtenerHorasDisponibles(UUID doctorId, LocalDate fecha, Long tratamientoId) {
+        List<String> horasDisponibles = new ArrayList<>();
+
+        // MAGIA: Buscamos al doctor sin importar qué tipo de ID nos envíe Angular
+        Usuario doctor = usuarioRepository.findById(doctorId)
+                .orElseGet(() -> usuarioRepository.findByKeycloakId(doctorId)
+                .orElseThrow(() -> new RuntimeException("Doctor no encontrado.")));
+
+        Tratamiento tratamiento = tratamientoRepository.findById(tratamientoId)
+                .orElseThrow(() -> new RuntimeException("Tratamiento no encontrado"));
+        int duracion = tratamiento.getDuracionMin();
+
+        // ¡IMPORTANTE! Usamos doctor.getId()
+        List<HorarioDoctor> horariosDelDia = horarioDoctorRepository
+                .findByDoctor_IdAndDiaSemana(doctor.getId(), fecha.getDayOfWeek());
+
+        if (horariosDelDia.isEmpty()) {
+            return horasDisponibles; 
+        }
+
+        LocalDateTime inicioDia = fecha.atStartOfDay();
+        LocalDateTime finDia = fecha.atTime(LocalTime.MAX);
+        
+        QCita qCita = QCita.cita;
+        Iterable<Cita> citasDelDia = citaRepository.findAll(
+                qCita.doctor.id.eq(doctor.getId())
+                .and(qCita.fechaHoraInicio.between(inicioDia, finDia))
+                .and(qCita.estado.ne(Cita.EstadoCita.CANCELADA))
+        );
+
+        QDisponibilidad qDisp = QDisponibilidad.disponibilidad;
+        Iterable<Disponibilidad> bloqueos = disponibilidadRepository.findAll(
+                qDisp.doctor.id.eq(doctor.getId())
+                .and(qDisp.fechaInicio.before(finDia))
+                .and(qDisp.fechaFin.after(inicioDia))
+        );
+
+        for (HorarioDoctor horario : horariosDelDia) {
+            LocalTime horaActual = horario.getHoraInicio();
+
+            while (!horaActual.plusMinutes(duracion).isAfter(horario.getHoraFin())) {
+                LocalDateTime posibleInicio = fecha.atTime(horaActual);
+                LocalDateTime posibleFin = posibleInicio.plusMinutes(duracion);
+
+                boolean hayTraslape = false;
+
+                for (Cita cita : citasDelDia) {
+                    if (posibleInicio.isBefore(cita.getFechaHoraFin()) && posibleFin.isAfter(cita.getFechaHoraInicio())) {
+                        hayTraslape = true;
+                        break;
+                    }
+                }
+
+                if (!hayTraslape) {
+                    for (Disponibilidad bloqueo : bloqueos) {
+                        if (posibleInicio.isBefore(bloqueo.getFechaFin()) && posibleFin.isAfter(bloqueo.getFechaInicio())) {
+                            hayTraslape = true;
+                            break;
+                        }
+                    }
+                }
+                
+                if (fecha.isEqual(LocalDate.now()) && horaActual.isBefore(LocalTime.now())) {
+                     hayTraslape = true;
+                }
+
+                if (!hayTraslape) {
+                    horasDisponibles.add(horaActual.toString().substring(0, 5)); 
+                }
+
+                horaActual = horaActual.plusMinutes(15);
+            }
+        }
+
+        return horasDisponibles;
+    }
+
+    //Obtiene las citas programadas para el día actual de un doctor específico
+    @Transactional(readOnly = true)
+    public List<CitaResponseDTO> obtenerCitasDeHoyPorDoctor(UUID doctorId) {
+        Usuario doctor = usuarioRepository.findByKeycloakId(doctorId)
+                .orElseThrow(() -> new RuntimeException("Doctor no encontrado"));
+        
+        LocalDateTime inicioDia = LocalDateTime.now().with(LocalTime.MIN); 
+        LocalDateTime finDia = LocalDateTime.now().with(LocalTime.MAX);   
+        
+        return citaRepository.findByDoctor_IdAndFechaHoraInicioBetween(doctor.getId(), inicioDia, finDia)
+                .stream()
+                .sorted((c1, c2) -> c1.getFechaHoraInicio().compareTo(c2.getFechaHoraInicio()))
+                .map(this::mapearADTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<CitaResponseDTO> obtenerCitasPorDoctor(UUID doctorKeycloakId) {
+        Usuario doctor = usuarioRepository.findByKeycloakId(doctorKeycloakId)
+                .orElseThrow(() -> new RuntimeException("Doctor no encontrado"));
+        return citaRepository.findByDoctor_Id(doctor.getId())
+                .stream()
+                .sorted((c1, c2) -> c2.getFechaHoraInicio().compareTo(c1.getFechaHoraInicio()))
+                .map(this::mapearADTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public CitaResponseDTO cambiarEstadoCita(UUID id, String nuevoEstado) {
+        Cita cita = citaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Cita no encontrada"));
+        cita.setEstado(Cita.EstadoCita.valueOf(nuevoEstado));
+        return mapearADTO(citaRepository.save(cita));
     }
 }

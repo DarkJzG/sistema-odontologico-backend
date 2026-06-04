@@ -1,3 +1,4 @@
+//src/main/java/com/odontologia/gestion_citas/web/controllers/UsuarioController.java
 package com.odontologia.gestion_citas.web.controllers;
 
 import com.odontologia.gestion_citas.domain.dtos.UsuarioDTO;
@@ -35,27 +36,27 @@ public class UsuarioController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<UsuarioDTO> obtenerPorId(@PathVariable UUID id) {
+    public ResponseEntity<UsuarioDTO> obtenerPorId(@PathVariable("id") UUID id) {
         return ResponseEntity.ok(usuarioService.obtenerPorId(id));
     }
 
     @GetMapping("/buscar")
-    public ResponseEntity<UsuarioDTO> obtenerPorCedula(@RequestParam String cedula) {
+    public ResponseEntity<UsuarioDTO> obtenerPorCedula(@RequestParam("cedula") String cedula) {
         return ResponseEntity.ok(usuarioService.obtenerPorCedula(cedula));
     }
 
     @GetMapping("/buscar-correo")
-    public ResponseEntity<UsuarioDTO> obtenerPorEmail(@RequestParam String email) {
+    public ResponseEntity<UsuarioDTO> obtenerPorEmail(@RequestParam("email") String email) {
         return ResponseEntity.ok(usuarioService.obtenerPorEmail(email));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<UsuarioDTO> actualizar(@PathVariable UUID id, @Valid @RequestBody UsuarioDTO dto) {
+    public ResponseEntity<UsuarioDTO> actualizar(@PathVariable("id") UUID id, @Valid @RequestBody UsuarioDTO dto) {
         return ResponseEntity.ok(usuarioService.actualizarUsuario(id, dto));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminar(@PathVariable UUID id) {
+    public ResponseEntity<Void> eliminar(@PathVariable("id") UUID id) {
         usuarioService.eliminarUsuario(id);
         return ResponseEntity.noContent().build();
     }
@@ -84,5 +85,10 @@ public class UsuarioController {
         PacientePerfilDTO perfilActualizado = pacientePerfilService.crearActualizarPerfil(id, dto.perfilMedico());
         DetallePacienteDTO detalleActualizado = new DetallePacienteDTO(usuarioActualizado, perfilActualizado);
         return ResponseEntity.ok(detalleActualizado);
+    }
+
+    @GetMapping("/lista/doctores")
+    public ResponseEntity<List<UsuarioDTO>> obtenerListaDoctores() {
+        return ResponseEntity.ok(usuarioService.listarDoctores());
     }
 }

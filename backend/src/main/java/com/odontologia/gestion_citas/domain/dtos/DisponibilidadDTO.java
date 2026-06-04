@@ -1,10 +1,15 @@
+//src/main/java/com/odontologia/gestion_citas/domain/dtos/DisponibilidadDTO.java
 package com.odontologia.gestion_citas.domain.dtos;
 
 import jakarta.validation.constraints.*;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 public record DisponibilidadDTO(
     Long id,
+
+    @NotNull(message = "El ID del doctor es obligatorio")
+    UUID idDoctor,
     
     @NotNull(message = "La fecha de inicio es obligatoria")
     @FutureOrPresent(message = "La jornada no puede empezar en el pasado")

@@ -1,3 +1,5 @@
+
+//src/main/java/com/odontologia/gestion_citas/domain/dtos/UsuarioDTO.java
 package com.odontologia.gestion_citas.domain.dtos;
 
 import jakarta.validation.constraints.*;
@@ -5,8 +7,7 @@ import java.util.UUID;
 
 public record UsuarioDTO (
 
-    @NotNull(message = "El ID del usuario es obligatorio, no puede ser nulo")
-    UUID idUsuario,
+    UUID id,
 
     @NotBlank(message = "La cédula es obligatoria")
     @Size(min = 10, max = 13, message = "La cédula debe tener entre 10 y 13 caracteres")

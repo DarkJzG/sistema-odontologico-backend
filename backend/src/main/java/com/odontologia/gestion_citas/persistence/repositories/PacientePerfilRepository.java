@@ -1,3 +1,4 @@
+//src/main/java/com/odontologia/gestion_citas/persistence/repositories/PacientePerfilRepository.java
 package com.odontologia.gestion_citas.persistence.repositories;
 
 import com.odontologia.gestion_citas.persistence.entities.PacientePerfil;

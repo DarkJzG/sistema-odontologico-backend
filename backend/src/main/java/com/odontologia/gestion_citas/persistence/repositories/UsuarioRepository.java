@@ -1,3 +1,4 @@
+//src/main/java/com/odontologia/gestion_citas/persistence/repositories/UsuarioRepository.java
 package com.odontologia.gestion_citas.persistence.repositories;
 
 import com.odontologia.gestion_citas.persistence.entities.Usuario;
@@ -10,6 +11,8 @@ import java.util.UUID;
 
 @Repository
 public interface UsuarioRepository extends JpaRepository<Usuario, UUID>, QuerydslPredicateExecutor<Usuario> {
+
+    Optional<Usuario> findByKeycloakId(UUID keycloakId);
     
     Optional<Usuario> findByEmail(String email);
 
@@ -18,5 +21,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario, UUID>, Queryds
     Optional<Usuario> findByNombres(String nombres);
 
     Optional<Usuario> findByApellidos(String apellidos);
+    
+    Optional<Usuario> findByRol(Usuario.Rol rol);
     
 }

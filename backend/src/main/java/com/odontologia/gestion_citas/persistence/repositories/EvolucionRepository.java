@@ -1,3 +1,4 @@
+//src/main/java/com/odontologia/gestion_citas/persistence/repositories/EvolucionRepository.java
 package com.odontologia.gestion_citas.persistence.repositories;
 
 import com.odontologia.gestion_citas.persistence.entities.Evoluciones;
@@ -10,6 +11,6 @@ import java.util.UUID;
 @Repository
 
 public interface EvolucionRepository extends JpaRepository<Evoluciones, UUID> {
-    Optional<Evoluciones> findByCitaId(UUID citaId);
-    boolean existsByCitaId(UUID citaId); // Útil por si quieres evitar duplicados
+    Optional<Evoluciones> findByCita_Id(UUID id);
+    boolean existsByCita_Id(UUID id); 
 }

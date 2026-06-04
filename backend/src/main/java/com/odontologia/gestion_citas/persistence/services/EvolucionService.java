@@ -1,3 +1,4 @@
+//src/main/java/com/odontologia/gestion_citas/persistence/services/EvolucionService.java
 package com.odontologia.gestion_citas.persistence.services;
 
 import com.odontologia.gestion_citas.domain.dtos.EvolucionDTO;
@@ -22,7 +23,7 @@ public class EvolucionService {
     @Transactional
     public EvolucionDTO crearEvolucion(EvolucionDTO dto) {
         // 1. Buscar la cita
-        Cita cita = citaRepository.findById(dto.getCitaId())
+        Cita cita = citaRepository.findById(dto.getIdCita())
                 .orElseThrow(() -> new RuntimeException("No se puede registrar evolución: Cita no encontrada"));
 
         // 2. Crear la entidad
@@ -50,9 +51,9 @@ public class EvolucionService {
     }
 
     @Transactional(readOnly = true)
-    public EvolucionDTO obtenerPorCita(UUID citaId) {
+    public EvolucionDTO obtenerPorCita(UUID id) {
         // Recuerda declarar: Optional<Evoluciones> findByCitaId(UUID citaId) en el Repository
-        return evolucionRepository.findByCitaId(citaId)
+        return evolucionRepository.findByCita_Id(id)
                 .map(this::mapearADTO)
                 .orElseThrow(() -> new RuntimeException("No se encontró una evolución para la cita solicitada"));
     }

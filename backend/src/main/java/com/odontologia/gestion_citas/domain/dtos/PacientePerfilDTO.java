@@ -1,3 +1,5 @@
+
+//src/main/java/com/odontologia/gestion_citas/domain/dtos/PacientePerfilDTO.java
 package com.odontologia.gestion_citas.domain.dtos;
 
 import jakarta.validation.constraints.*;
@@ -5,8 +7,8 @@ import jakarta.validation.constraints.*;
 import java.util.UUID;
 
 public record PacientePerfilDTO(
-
-    UUID idPaciente,
+    
+    UUID id,
 
     @NotBlank(message = "El grupo sanguíneo es obligatorio, no puede estar vacío")
     @Size(max = 10, message = "El grupo sanguíneo no puede exceder 10 caracteres")

@@ -1,3 +1,4 @@
+//src/main/java/com/odontologia/gestion_citas/domain/dtos/EvolucionDTO.java
 package com.odontologia.gestion_citas.domain.dtos;
 
 import jakarta.validation.constraints.*;
@@ -16,7 +17,7 @@ public class EvolucionDTO {
     private UUID id;
 
     @NotNull(message = "El ID de la cita es obligatorio para registrar la evolución")
-    private UUID citaId;
+    private UUID idCita;
 
     @NotBlank(message = "La descripción del procedimiento no puede estar vacía")
     @Size(min = 10, max = 2000, message = "La descripción debe tener entre 10 y 2000 caracteres")

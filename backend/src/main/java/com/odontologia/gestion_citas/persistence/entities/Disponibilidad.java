@@ -1,3 +1,4 @@
+//src/main/java/com/odontologia/gestion_citas/persistence/entities/Disponibilidad.java
 package com.odontologia.gestion_citas.persistence.entities;
 
 import jakarta.persistence.*;
@@ -12,7 +13,11 @@ public class Disponibilidad {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "doctor_id", nullable = false)
+    private Usuario doctor;
+
     @Column(name = "fecha_inicio", nullable = false)
     private LocalDateTime fechaInicio;
     

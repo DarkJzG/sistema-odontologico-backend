@@ -1,3 +1,4 @@
+//src/main/java/com/odontologia/gestion_citas/persistence/entities/Evoluciones.java
 package com.odontologia.gestion_citas.persistence.entities;
 
 import jakarta.persistence.*;
@@ -11,10 +12,10 @@ import java.util.UUID;
 
 @Getter
 @Setter
-@ToString(exclude = "cita") // Evitamos bucles infinitos y problemas de Lazy Loading
+@ToString(exclude = "cita")
 @Entity
 @Table(name = "evoluciones")
-public class Evoluciones { // Se recomienda el nombre en singular para la clase
+public class Evoluciones { 
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

@@ -1,3 +1,5 @@
+
+//src/main/java/com/odontologia/gestion_citas/persistence/entities/Usuario.java
 package com.odontologia.gestion_citas.persistence.entities;
 
 import jakarta.persistence.*;
@@ -21,7 +23,7 @@ public class Usuario {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "id_usuario")
-    private UUID idUsuario;
+    private UUID id;
 
     @Column(name = "keycloak_id", unique = true)
     private UUID keycloakId;

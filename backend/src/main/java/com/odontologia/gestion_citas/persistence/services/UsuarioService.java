@@ -1,3 +1,6 @@
+
+
+//src/main/java/com/odontologia/gestion_citas/persistence/services/UsuarioService.java
 package com.odontologia.gestion_citas.persistence.services;
 
 import com.odontologia.gestion_citas.domain.dtos.UsuarioDTO;
@@ -7,6 +10,17 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import org.keycloak.admin.client.Keycloak;
+import org.keycloak.admin.client.resource.UsersResource;
+import org.keycloak.representations.idm.CredentialRepresentation;
+import org.keycloak.representations.idm.UserRepresentation;
+import jakarta.ws.rs.core.Response;
+import java.util.Collections;
+
+import com.odontologia.gestion_citas.persistence.repositories.PacientePerfilRepository;
+import com.odontologia.gestion_citas.persistence.repositories.CitaRepository;
+import com.odontologia.gestion_citas.persistence.entities.Cita;
 
 import java.util.List;
 import java.util.UUID;
@@ -18,6 +32,10 @@ import java.util.stream.Collectors;
 public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
+    private final Keycloak keycloak;
+
+    private final PacientePerfilRepository pacientePerfilRepository;
+    private final CitaRepository citaRepository;
 
     @Transactional
     public UsuarioDTO crearUsuario(UsuarioDTO dto) {
@@ -25,17 +43,47 @@ public class UsuarioService {
             throw new RuntimeException("El correo ya está registrado");
         }
 
+        // 1. Crear el usuario en Keycloak
+        UserRepresentation user = new UserRepresentation();
+        user.setUsername(dto.email());
+        user.setEmail(dto.email());
+        user.setFirstName(dto.nombres());
+        user.setLastName(dto.apellidos());
+        user.setEnabled(true);
+        user.setEmailVerified(true);
+
+        // Contraseña temporal (usamos la cédula como pediste)
+        CredentialRepresentation credential = new CredentialRepresentation();
+        credential.setType(CredentialRepresentation.PASSWORD);
+        credential.setValue(dto.cedula()); 
+        credential.setTemporary(true); // ¡Obliga al cambio de clave al primer login!
+        user.setCredentials(Collections.singletonList(credential));
+
+        UsersResource usersResource = keycloak.realm("odontostyle-realm").users();
+        Response response = usersResource.create(user);
+        
+        if (response.getStatus() != 201) {
+            throw new RuntimeException("Error al crear usuario en Keycloak: " + response.getStatusInfo());
+        }
+
+        // Obtener el ID que Keycloak asignó al usuario
+        String userId = response.getLocation().getPath().replaceAll(".*/([^/]+)$", "$1");
+        String roleName = dto.rol(); // "PACIENTE", "DOCTOR", etc.
+        var roleToAdd = keycloak.realm("odontostyle-realm").roles().get(roleName).toRepresentation();
+        usersResource.get(userId).roles().realmLevel().add(Collections.singletonList(roleToAdd));
+
+        // 2. Guardar en PostgreSQL incluyendo el nuevo keycloak_id
         Usuario usuario = Usuario.builder()
-                .idUsuario(UUID.randomUUID())
                 .cedula(dto.cedula())
                 .nombres(dto.nombres())
                 .apellidos(dto.apellidos())
                 .email(dto.email())
                 .telefono(dto.telefono())
                 .rol(Usuario.Rol.valueOf(dto.rol()))
+                .keycloakId(UUID.fromString(userId)) // <-- Guardamos la conexión
                 .build();
 
-        @NonNull Usuario usuarioGuardado = usuarioRepository.save(usuario);
+        Usuario usuarioGuardado = usuarioRepository.save(usuario);
         return mapearADTO(usuarioGuardado);
     }
 
@@ -45,6 +93,7 @@ public class UsuarioService {
                 .map(this::mapearADTO)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + id));
     }
+
 
     @Transactional(readOnly = true)
     public UsuarioDTO obtenerPorCedula(String cedula) {
@@ -90,15 +139,29 @@ public class UsuarioService {
 
     @Transactional
     public void eliminarUsuario(UUID id) {
-        if (!usuarioRepository.existsById(id)) {
-            throw new RuntimeException("No se puede eliminar: Usuario no encontrado");
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("No se puede eliminar: Usuario no encontrado"));
+
+        List<Cita> citasDelPaciente = citaRepository.findByPaciente_Id(id);
+        if (!citasDelPaciente.isEmpty()) {
+            citaRepository.borrarCitasPorPaciente(id);
+        }
+        if (pacientePerfilRepository.existsById(id)) {
+            pacientePerfilRepository.deleteById(id);
+        }
+        if (usuario.getKeycloakId() != null) {
+            try {
+                keycloak.realm("odontostyle-realm").users().get(usuario.getKeycloakId().toString()).remove();
+            } catch (Exception e) {
+                System.out.println("Nota: El usuario no existía en Keycloak o hubo un error de red.");
+            }
         }
         usuarioRepository.deleteById(id);
     }
 
     private UsuarioDTO mapearADTO(Usuario usuario) {
         return new UsuarioDTO(
-                usuario.getIdUsuario(),
+                usuario.getId(),
                 usuario.getCedula(),
                 usuario.getNombres(),
                 usuario.getApellidos(),
@@ -106,5 +169,12 @@ public class UsuarioService {
                 usuario.getTelefono(),
                 usuario.getRol() != null ? usuario.getRol().name() : "NO_ASIGNADO"
         );
+    }
+
+    @Transactional(readOnly = true)
+    public List<UsuarioDTO> listarDoctores() {
+        return usuarioRepository.findByRol(Usuario.Rol.DOCTOR).stream()
+                .map(this::mapearADTO)
+                .collect(Collectors.toList());
     }
 }

@@ -1,3 +1,4 @@
+//src/main/java/com/odontologia/gestion_citas/web/config/CorsConfig.java
 package com.odontologia.gestion_citas.web.config;
 
 import org.springframework.context.annotation.Bean;

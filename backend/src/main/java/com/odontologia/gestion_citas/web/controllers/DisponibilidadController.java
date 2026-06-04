@@ -1,3 +1,4 @@
+//src/main/java/com/odontologia/gestion_citas/web/controllers/DisponibilidadController.java
 package com.odontologia.gestion_citas.web.controllers;
 
 import com.odontologia.gestion_citas.domain.dtos.DisponibilidadDTO;
@@ -14,7 +15,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/disponibilidad")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class DisponibilidadController {
 
     private final DisponibilidadService disponibilidadService;
@@ -29,5 +29,12 @@ public class DisponibilidadController {
     @PostMapping
     public ResponseEntity<DisponibilidadDTO> crear(@Valid @RequestBody DisponibilidadDTO dto) {
         return new ResponseEntity<>(disponibilidadService.crearDisponibilidad(dto), HttpStatus.CREATED);
+    }
+
+    // Eliminar un bloqueo de agenda
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminar(@PathVariable("id") Long id) {
+        disponibilidadService.eliminarDisponibilidad(id);
+        return ResponseEntity.noContent().build();
     }
 }

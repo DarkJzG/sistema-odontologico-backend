@@ -1,3 +1,4 @@
+//src/main/java/com/odontologia/gestion_citas/persistence/entities/PacientePerfil.java
 package com.odontologia.gestion_citas.persistence.entities;
 
 import jakarta.persistence.*;
@@ -16,8 +17,7 @@ import java.util.UUID;
 public class PacientePerfil {
 
     @Id
-    @Column(name = "id_paciente")
-    private UUID idPaciente;
+    private UUID id;
 
     @OneToOne
     @MapsId

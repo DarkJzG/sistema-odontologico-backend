@@ -1,3 +1,4 @@
+//src/main/java/com/odontologia/gestion_citas/web/controllers/EvolucionController.java
 package com.odontologia.gestion_citas.web.controllers;
 
 import com.odontologia.gestion_citas.domain.dtos.EvolucionDTO;
@@ -19,17 +20,18 @@ public class EvolucionController {
     private final EvolucionService evolucionService;
 
     @PostMapping
-    public ResponseEntity<EvolucionDTO> crear(@Valid @RequestBody EvolucionDTO dto) {
-        return new ResponseEntity<>(evolucionService.crearEvolucion(dto), HttpStatus.CREATED);
+    public ResponseEntity<EvolucionDTO> crearEvolucion(@Valid @RequestBody EvolucionDTO dto) {
+        EvolucionDTO nuevaEvolucion = evolucionService.crearEvolucion(dto);
+        return new ResponseEntity<>(nuevaEvolucion, HttpStatus.CREATED);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<EvolucionDTO> obtenerPorId(@PathVariable UUID id) {
+    public ResponseEntity<EvolucionDTO> obtenerPorId(@PathVariable("id") UUID id) {
         return ResponseEntity.ok(evolucionService.obtenerPorId(id));
     }
 
     @GetMapping("/cita/{citaId}")
-    public ResponseEntity<EvolucionDTO> obtenerPorCita(@PathVariable UUID citaId) {
+    public ResponseEntity<EvolucionDTO> obtenerPorCita(@PathVariable("citaId") UUID citaId) {
         return ResponseEntity.ok(evolucionService.obtenerPorCita(citaId));
     }
 }

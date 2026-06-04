@@ -1,9 +1,11 @@
+//src/main/java/com/odontologia/gestion_citas/domain/dtos/ErrorResponseDTO.java
 package com.odontologia.gestion_citas.domain.dtos;
 
 import lombok.Builder;
 import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.Map;
+
 
 @Data
 @Builder
@@ -24,6 +26,5 @@ public class ErrorResponseDTO {
     private String path;
     
     // Detalle de errores de validación (ej. "cedula": "Debe tener 10 dígitos")
-    // Se usa Map para enviar varios errores de campos al mismo tiempo
     private Map<String, String> validaciones; 
 }

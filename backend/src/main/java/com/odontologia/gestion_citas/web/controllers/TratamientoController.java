@@ -1,3 +1,4 @@
+//src/main/java/com/odontologia/gestion_citas/web/controllers/TratamientoController.java
 package com.odontologia.gestion_citas.web.controllers;
 
 import com.odontologia.gestion_citas.domain.dtos.TratamientoDTO;
@@ -23,7 +24,7 @@ public class TratamientoController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<TratamientoDTO> obtenerPorId(@PathVariable Long id) {
+    public ResponseEntity<TratamientoDTO> obtenerPorId(@PathVariable("id") Long id) {
         return ResponseEntity.ok(tratamientoService.obtenerPorId(id));
     }
 
@@ -34,13 +35,12 @@ public class TratamientoController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<TratamientoDTO> actualizar(@PathVariable Long id, @Valid @RequestBody TratamientoDTO dto) {
-        // Permitimos actualizar tratamientos existentes
+    public ResponseEntity<TratamientoDTO> actualizar(@PathVariable("id") Long id, @Valid @RequestBody TratamientoDTO dto) {
         return ResponseEntity.ok(tratamientoService.actualizarTratamiento(id, dto));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+    public ResponseEntity<Void> eliminar(@PathVariable("id") Long id) {
         // Permitimos eliminar (Devuelve 204 No Content)
         tratamientoService.eliminarTratamiento(id);
         return ResponseEntity.noContent().build();

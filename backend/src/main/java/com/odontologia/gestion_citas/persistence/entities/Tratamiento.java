@@ -1,3 +1,4 @@
+//src/main/java/com/odontologia/gestion_citas/persistence/entities/Tratamiento.java
 package com.odontologia.gestion_citas.persistence.entities;
 
 import jakarta.persistence.*;

@@ -1,3 +1,5 @@
+
+//src/main/java/com/odontologia/gestion_citas/persistence/entities/PiezaDental.java
 package com.odontologia.gestion_citas.persistence.entities;
 
 import jakarta.persistence.*;
@@ -16,7 +18,7 @@ public class PiezaDental {
    
     @Id
     @Column(name = "id_pieza")
-    private Integer idPieza;
+    private Integer id;
 
     @Column(nullable = false, length = 50)
     private String nombre;

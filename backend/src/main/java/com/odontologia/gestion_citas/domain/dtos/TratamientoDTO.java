@@ -1,3 +1,4 @@
+//src/main/java/com/odontologia/gestion_citas/domain/dtos/TratamientoDTO.java
 package com.odontologia.gestion_citas.domain.dtos;
 
 import jakarta.validation.constraints.*;

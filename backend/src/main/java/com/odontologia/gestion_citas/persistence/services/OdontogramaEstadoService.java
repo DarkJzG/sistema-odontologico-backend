@@ -1,3 +1,4 @@
+//src/main/java/com/odontologia/gestion_citas/persistence/services/OdontogramaEstadoService.java
 package com.odontologia.gestion_citas.persistence.services;
 
 import com.odontologia.gestion_citas.domain.dtos.OdontogramaEstadoDTO;
@@ -11,7 +12,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -30,8 +33,8 @@ public class OdontogramaEstadoService {
         Usuario paciente = usuarioRepository.findById(idPaciente)
             .orElseThrow(() -> new RuntimeException("Paciente no encontrado"));
         
-        //Existe la pieza dental??
-        PiezaDental pieza = piezaDentalRepository.findById(dto.piezaId())
+
+        PiezaDental pieza = piezaDentalRepository.findById(dto.idPieza())
             .orElseThrow(() -> new RuntimeException("Pieza dental no encontrada"));
         
         //se consuye la entidad
@@ -49,12 +52,12 @@ public class OdontogramaEstadoService {
     }
 
     @Transactional(readOnly =true)
-    public List<OdontogramaEstadoDTO> obtenerOdontogramaPaciente(UUID idPaciente) {
-        if (!usuarioRepository.existsById(idPaciente)) {
+    public List<OdontogramaEstadoDTO> obtenerOdontogramaPaciente(UUID id) {
+        if (!usuarioRepository.existsById(id)) {
             throw new RuntimeException("Paciente no encontrado");
         }
         
-        return odontogramaEstadoRepository.findByPacienteIdUsuario(idPaciente).stream()
+        return odontogramaEstadoRepository.findByPaciente_Id(id).stream()
             .map(this::mapearADTO)
             .collect(Collectors.toList());
     }
@@ -62,8 +65,8 @@ public class OdontogramaEstadoService {
     private OdontogramaEstadoDTO mapearADTO(OdontogramaEstado estado) {
         return new OdontogramaEstadoDTO(
             estado.getId(),
-            estado.getPaciente().getIdUsuario(),
-            estado.getPiezaDental().getIdPieza(),
+            estado.getPaciente().getId(),
+            estado.getPiezaDental().getId(),
             estado.getPosicion().name(),
             estado.getEstado().name(),
             estado.getNotas(),
@@ -72,18 +75,22 @@ public class OdontogramaEstadoService {
     }
 
     @Transactional
-    public List<OdontogramaEstadoDTO> obtenerEstadoActualOdontograma(UUID idPaciente) {
-        if (!usuarioRepository.existsById(idPaciente)) {
+    public List<OdontogramaEstadoDTO> obtenerEstadoActualOdontograma(UUID id) {
+        if (!usuarioRepository.existsById(id)) {
             throw new RuntimeException("Paciente no encontrado");
         }
 
-        List<OdontogramaEstado> historialCompleto = odontogramaEstadoRepository.findByPacienteIdUsuario(idPaciente);
+        List<OdontogramaEstado> historialCompleto = odontogramaEstadoRepository.findByPaciente_Id(id);
         
-        java.util.Map<String, OdontogramaEstado> estadoActual = historialCompleto.stream()
+        Map<String, OdontogramaEstado> estadoActual = historialCompleto.stream()
             .collect(java.util.stream.Collectors.toMap(
-                estado -> estado.getPiezaDental().getIdPieza() + "_" + estado.getPosicion().name(),
+                estado -> estado.getPiezaDental().getId() + "_" + estado.getPosicion().name(),
                 estado -> estado,
-                (existente, reemplazo) -> existente.getFechaRegistro().isAfter(reemplazo.getFechaRegistro()) ? existente : reemplazo
+                (existente, reemplazo) -> {
+                    if (existente.getFechaRegistro() == null) return reemplazo;
+                    if (reemplazo.getFechaRegistro() == null) return existente;
+                    return existente.getFechaRegistro().isAfter(reemplazo.getFechaRegistro()) ? existente : reemplazo;
+                }
             ));
 
         //Convertir los valores a DTO y retornarlos
