@@ -25,4 +25,25 @@ public interface CitaRepository extends JpaRepository<Cita, UUID>, QuerydslPredi
     @Modifying
     @Query("DELETE FROM Cita c WHERE c.paciente.id = :pacienteId")
     void borrarCitasPorPaciente(@Param("pacienteId") UUID pacienteId);
+
+    @Query("SELECT c FROM Cita c WHERE c.estado = :estado " +
+           "AND c.fechaHoraInicio >= :inicio AND c.fechaHoraInicio < :fin " +
+           "AND c.recordatorioDiaEnviado = :enviadoDia")
+    List<Cita> buscarCitasParaRecordatorio(
+            @Param("estado") Cita.EstadoCita estado,
+            @Param("inicio") LocalDateTime inicio,
+            @Param("fin") LocalDateTime fin,
+            @Param("enviadoDia") Boolean enviadoDia);
+            
+
+    @Query("SELECT c FROM Cita c WHERE c.estado = :estado " +
+           "AND c.fechaHoraInicio >= :inicio AND c.fechaHoraInicio < :fin " +
+           "AND c.recordatorioDiaEnviado = :enviadoDia " +
+           "AND c.recordatorioHoraEnviado = :enviadoHora")
+    List<Cita> buscarCitasParaRecordatorioHora(
+            @Param("estado") Cita.EstadoCita estado,
+            @Param("inicio") LocalDateTime inicio,
+            @Param("fin") LocalDateTime fin,
+            @Param("enviadoDia") Boolean enviadoDia,
+            @Param("enviadoHora") Boolean enviadoHora);
 }

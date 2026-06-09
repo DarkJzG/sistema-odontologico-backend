@@ -58,6 +58,12 @@ public class Cita {
     @Column(name = "actualizado_en")
     private LocalDateTime actualizadoEn;
 
+    @Column(name = "recordatorio_dia_enviado")
+    private Boolean recordatorioDiaEnviado = false;
+
+    @Column(name = "recordatorio_hora_enviado")
+    private Boolean recordatorioHoraEnviado = false;
+
     public enum EstadoCita {
         PENDIENTE, COMPLETADA, CANCELADA, FALTA
     }
