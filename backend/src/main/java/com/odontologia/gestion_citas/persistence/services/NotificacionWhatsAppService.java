@@ -40,7 +40,11 @@ public class NotificacionWhatsAppService {
         LocalDateTime en24HorasInicio = ahora.plusHours(24).withSecond(0).withNano(0);
         LocalDateTime en24HorasFin = en24HorasInicio.plusMinutes(1);
 
+        LocalDateTime en1HoraInicio = ahora.plusHours(1).withSecond(0).withNano(0);
+        LocalDateTime en1HoraFin = en1HoraInicio.plusMinutes(1);
+
         enviarRecordatorios24Horas(en24HorasInicio, en24HorasFin);
+        enviarRecordatorios1Hora(en1HoraInicio, en1HoraFin);
     }
 
     private void enviarRecordatorios24Horas(LocalDateTime inicio, LocalDateTime fin) {
@@ -63,7 +67,25 @@ public class NotificacionWhatsAppService {
         }
     }
 
+    private void enviarRecordatorios1Hora(LocalDateTime inicio, LocalDateTime fin) {
+        // AQUÍ EL CAMBIO: Ya no le pasamos el "true", solo le pasamos el "false" de la hora
+        List<Cita> citas = citaRepository.buscarCitasParaRecordatorioHora(
+                Cita.EstadoCita.PENDIENTE, inicio, fin, false);
 
+        ConfiguracionWhatsapp config = configRepo.findById(1).orElse(new ConfiguracionWhatsapp());
+
+        for (Cita cita : citas) {
+            String telefono = formatearTelefono(cita.getPaciente().getTelefono());
+            
+            String mensaje = config.getMensaje1h()
+                    .replace("[NOMBRE_PACIENTE]", cita.getPaciente().getNombres())
+                    .replace("[HORA_CITA]", cita.getFechaHoraInicio().toLocalTime().toString());
+
+            enviarMensajeHTTP(telefono, mensaje);
+            cita.setRecordatorioHoraEnviado(true);
+            citaRepository.save(cita);
+        }
+    }
 
     // Método que ejecuta el POST hacia Node.js
     private void enviarMensajeHTTP(String telefono, String mensaje) {

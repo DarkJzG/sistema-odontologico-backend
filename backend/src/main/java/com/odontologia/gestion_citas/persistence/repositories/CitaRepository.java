@@ -38,12 +38,10 @@ public interface CitaRepository extends JpaRepository<Cita, UUID>, QuerydslPredi
 
     @Query("SELECT c FROM Cita c WHERE c.estado = :estado " +
            "AND c.fechaHoraInicio >= :inicio AND c.fechaHoraInicio < :fin " +
-           "AND c.recordatorioDiaEnviado = :enviadoDia " +
-           "AND c.recordatorioHoraEnviado = :enviadoHora")
+           "AND (c.recordatorioHoraEnviado = :enviadoHora OR c.recordatorioHoraEnviado IS NULL)")
     List<Cita> buscarCitasParaRecordatorioHora(
             @Param("estado") Cita.EstadoCita estado,
             @Param("inicio") LocalDateTime inicio,
             @Param("fin") LocalDateTime fin,
-            @Param("enviadoDia") Boolean enviadoDia,
             @Param("enviadoHora") Boolean enviadoHora);
 }
