@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -21,23 +22,28 @@ public class RadiografiaService {
 
     private final RadiografiaRepository radiografiaRepository;
     private final UsuarioRepository usuarioRepository;
-    private final StorageService storageService; // Inyecta la estrategia (LocalFileStorageService de momento)
+    // 1. Cambiamos StorageService por CloudinaryService
+    private final CloudinaryService cloudinaryService; 
 
     @Transactional
     public RadiografiaDTO subirRadiografia(UUID idPaciente, String tipo, MultipartFile archivo) {
-        // Validación relacional de soporte dual de identidades
+        
         Usuario paciente = usuarioRepository.findById(idPaciente)
                 .orElseGet(() -> usuarioRepository.findByKeycloakId(idPaciente)
                 .orElseThrow(() -> new RuntimeException("No se puede registrar el estudio: El paciente no existe.")));
 
-        // Guardamos el archivo binario físicamente mediante el servicio abstracto
-        String urlResultado = storageService.guardarArchivo(archivo, "radiografias");
+        String urlResultado;
+        try {
+            // 2. Subimos directamente a Cloudinary
+            urlResultado = cloudinaryService.subirImagen(archivo);
+        } catch (IOException e) {
+            throw new RuntimeException("Error al subir la imagen a la nube", e);
+        }
 
-        // Creamos y guardamos la metadata en PostgreSQL
         Radiografia rx = new Radiografia();
         rx.setPaciente(paciente);
         rx.setTipo(tipo.toUpperCase());
-        rx.setUrlArchivo(urlResultado);
+        rx.setUrlArchivo(urlResultado); // Se guarda el link "https://res.cloudinary.com/..."
 
         Radiografia guardada = radiografiaRepository.save(rx);
         return mapearADTO(guardada);
