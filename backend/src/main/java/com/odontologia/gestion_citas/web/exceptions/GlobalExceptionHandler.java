@@ -13,6 +13,31 @@ import java.time.LocalDateTime;
 @RestControllerAdvice 
 public class GlobalExceptionHandler {
 
+    // ODO-39: sin este manejador, un 403 de @PreAuthorize se respondía como 400 por el handler de RuntimeException.
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<ErrorResponseDTO> manejarAccesoDenegado(org.springframework.security.access.AccessDeniedException ex, WebRequest request) {
+        ErrorResponseDTO error = ErrorResponseDTO.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.FORBIDDEN.value())
+                .error("Acceso denegado")
+                .mensaje("No tiene permisos para realizar esta acción.")
+                .path(request.getDescription(false))
+                .build();
+        return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(com.odontologia.gestion_citas.modules.pagos.domain.PagoNoEncontradoException.class)
+    public ResponseEntity<ErrorResponseDTO> manejarNoEncontrado(RuntimeException ex, WebRequest request) {
+        ErrorResponseDTO error = ErrorResponseDTO.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.NOT_FOUND.value())
+                .error("No encontrado")
+                .mensaje(ex.getMessage())
+                .path(request.getDescription(false))
+                .build();
+        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ErrorResponseDTO> manejarRuntimeException(RuntimeException ex, WebRequest request) {
         ErrorResponseDTO error = ErrorResponseDTO.builder()
